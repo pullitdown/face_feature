@@ -1,23 +1,24 @@
 # face_feature_sys
 
-#### 介绍
-over
+中医诊断系统 介绍
+略
 
 #### 软件架构
-软件架构说明
+引入的包:
+pyside2
+opencv-python
+numpy
+以及其他python官方库
+
 
 
 #### 安装教程
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+"pip install xxxx"
 
-#### 使用说明
+参考安装连接:www.python.3vip
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+
 
 #### 参与贡献
 
