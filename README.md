@@ -16,7 +16,7 @@ numpy
 
 "pip install xxxx"
 
-参考安装连接:www.python.3vip
+参考安装连接:https://python3.vip
 
 
 
