@@ -12,6 +12,8 @@ from numpy.__config__ import show
 import dlib
 from scipy import signal
 
+from functools import partial
+
 def showimg(name,img):
     cv2.imshow(name,img)
     cv2.waitKey()
@@ -53,12 +55,14 @@ class Stats:
         self.face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
 
         self.eye_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_eye.xml")
-        self.ui = QUiLoader().load('./qt/ui/untitled.ui')
+        #self.ui = QUiLoader().load('./qt/ui/untitled.ui')
+        self.ui = QUiLoader().load('./qt/ui/fin.ui')
         print(type(self.ui))
         self.ui.toolButton.clicked.connect(self.start)
         self.ui.toolButton_4.clicked.connect(self.pulse_feature)
         self.ui.toolButton_2.clicked.connect(self.faceFeature)
-
+        self.ui.toolButton_5.clicked.connect(self.question)
+        self.ui.toolButton_6.clicked.connect(self.restart)
         self.timer_Active = 0
         self.timer = QTimer()
         self.timer.start()            # 实时刷新，不然视频不动态
@@ -67,8 +71,78 @@ class Stats:
          # 实时刷新，不然视频不动态
         self.timer_4.setInterval(100)  # 设置刷新时间
         self.timer_4.start()
-        
+        self.questions=[["1、近期是否有特别怕冷或者怕热的情况",("A.是","B.否")],["2、有没有出现手心、脚心、胸中发热的情况",("A.有","B.无明显症状")],
+       ["3、近期的出汗状况？",("A.无明显症状","B.睡觉时易出汗","C.日常生活汗多","D.有出冷汗的现象")],
+       ["4、近期是否有经常出现头晕或者头痛的症状",("A.是","B.否")],["5、近期是否有身体乏力，精神不振的感觉？",("A.是","B.否")],
+       ["6、近期是否有出现腰酸背痛，精力不足的症状",("A.是","B.否")],
+       ["7、近期大便的症状",("A.正常量且正常态(成型)","B.量少正常态（成型）","C.正常量，但大便粘滞","D.正常量，但大便稀","E.量多,腹泻")],
+       ["8、近期胃口",("A.正常量","B.吃得少，无胃口","C.厌食，胃胀，泛酸","D.不想吃油腻的东西，容易对其产生呕吐感","容易饿，且多饮多尿")],
+       ["9、近期的小便的症状",("A.正常量，且正常态","B.小便短黄","C.小便清长","D.小便有异味")],
+       ["10、有无出现胸闷，心悸，胁胀和腹胀的症状",("A.有","B.无")],
+       ["11、有无出现耳鸣和听力下降的问题",("A.有","B.无")],
+       ["12、有无经常出现口干或者口渴的症状",("A.有","B.无")],
+       ["13、平时多喝冷饮，热饮还是常温？",("A.冷饮","B.热饮","C.常温")],
+       ["14、有无常病史",("A.糖尿病","B.脂肪肝","C.高血压","D.高血脂","E.高尿酸","F.低血压")]]
+        self.nowQuestionIndex=0
+        self.questionsLen=len(self.questions)
+        self.ui.textBrowser.setText("点击开始答题,本文本框会出现问题,根据实际情况在以下选择框内选择一个答案")
+        self.answerTable=[]#记录问卷选择的答案
+        self.isAnswer=1
+        self.singleAnswer=[]#记录单个问题的回答,可以多选
 
+    def restart(self,event):
+        self.nowQuestionIndex=0
+        self.isAnswer=1
+        self.answerTable=[]
+        self.singleAnswer=[]
+        self.ui.toolButton_5.setText("开始答题")
+        while self.ui.select_table.count():
+            widget=self.ui.select_table.takeAt(0).widget()
+            widget.deleteLater()
+        self.ui.textBrowser.setText("点击开始答题,本文本框会出现问题,根据实际情况在以下选择框内选择一个答案")
+
+
+    def question(self,event):
+        if self.isAnswer==0:
+            QMessageBox.information(self.ui,"提示","请点击选项再回答下一题")
+            return
+        self.isAnswer=0#设置为未回答
+        if not self.singleAnswer ==[]:
+            self.answerTable.append(self.singleAnswer)
+        self.singleAnswer=[]
+        i=self.nowQuestionIndex
+        self.nowQuestionIndex+=1
+        if i==0:
+            self.ui.toolButton_5.setText("下一题")
+        if i==self.questionsLen-1:
+            self.ui.toolButton_5.setText("结束答题")
+        if i>self.questionsLen:
+            QMessageBox.information(self.ui,"提示","已经结束答题,如果想重试答题,请按重新作答键")
+            return
+        if i==self.questionsLen:
+            QMessageBox.information(self.ui,"检测结果",str(self.answerTable)+"您非常健康!")
+            return
+        
+        self.ui.textBrowser.setText(self.questions[i][0])
+        lenOfAnswer=len(self.questions[i][1])
+        while self.ui.select_table.count():
+            widget=self.ui.select_table.takeAt(0).widget()
+            
+            widget.deleteLater()
+        for row,j in enumerate(range(0,lenOfAnswer,3)):
+            for col in range(min(3,lenOfAnswer-j)):
+                button = QPushButton(self.questions[i][1][j+col], self.ui)
+                button.clicked.connect(partial(self.answerTable_append,button,j+col))
+                self.ui.select_table.addWidget(button,row,col) 
+        
+            
+
+    
+    def answerTable_append(self,widget ,num):
+        self.isAnswer=1
+        widget.setStyleSheet("QPushButton{color:black;background-color:rgb(51,123,4)}")
+        self.singleAnswer.append(num)
+        
 
     def start(self,event):
         if self.capIsOpen==0:
