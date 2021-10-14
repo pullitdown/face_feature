@@ -10,7 +10,14 @@ opencv-python
 numpy
 以及其他python官方库
 
+#### 文件构成
+sys1.py为目前最后的提交
 
+sys.py为测试文件
+
+ui/untitled.ui 为ui文件
+
+data/shape_predictor_68_face_landmarks.dat 为dlib人脸特征区域定位资源文件
 
 #### 安装教程
 
