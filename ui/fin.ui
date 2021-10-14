@@ -135,6 +135,19 @@
     <string>重新开始答题</string>
    </property>
   </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>510</x>
+     <y>30</y>
+     <width>511</width>
+     <height>71</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>视频开启-&gt;脸色采集-&gt;舌像采集-&gt;视频心率-&gt;开始回答-&gt;下一题-&gt;回答结束</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

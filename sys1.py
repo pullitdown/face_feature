@@ -1,7 +1,7 @@
 #coding=gbk
 from PySide2.QtWidgets import QApplication,QPushButton,QLabel,QMessageBox
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QBrush,QPixmap,QPalette,QImage
+from PySide2.QtGui import QBrush,QPixmap,QPalette,QImage,QPixmap
 from PySide2.QtCore  import QTimer
 import PySide2 
 import cv2
@@ -25,7 +25,6 @@ def showbignum(name,img):
     img = cv2.convertScaleAbs(img)
     print(name,"\n:\n",img)
 
-    showimg(name,img)
 def kernelbysize(size):
     kernel_size=size
     kernel_size_half=int(kernel_size/2)
@@ -52,15 +51,15 @@ class Stats:
         # icon = QPixmap(r'C:\Users\stepf\Desktop\pizhi.jpeg').scaled(800, 600)
         # palette.setBrush(self.backgroundRole(), QBrush(icon))
         # self.setPalette(palette)
+        self.ui = QUiLoader().load('./qt/ui/fin.ui')
         self.face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
-
+        
         self.eye_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_eye.xml")
         #self.ui = QUiLoader().load('./qt/ui/untitled.ui')
-        self.ui = QUiLoader().load('./qt/ui/fin.ui')
-        print(type(self.ui))
+        
         self.ui.toolButton.clicked.connect(self.start)
         self.ui.toolButton_4.clicked.connect(self.pulse_feature)
-        self.ui.toolButton_2.clicked.connect(self.faceFeature)
+        self.ui.toolButton_2.clicked.connect(partial(self.faceFeature,0))
         self.ui.toolButton_5.clicked.connect(self.question)
         self.ui.toolButton_6.clicked.connect(self.restart)
         self.timer_Active = 0
@@ -89,6 +88,15 @@ class Stats:
         self.answerTable=[]#记录问卷选择的答案
         self.isAnswer=1
         self.singleAnswer=[]#记录单个问题的回答,可以多选
+        self.display_video_stream(cv2.imread(".\qt\img\capBackground.jpg"))
+
+    def display_video_stream(self,frame):
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        frame = cv2.flip(frame, 1)
+        image = QImage(frame, frame.shape[1], frame.shape[0],
+                       frame.strides[0], QImage.Format_RGB888)
+        
+        self.ui.label.setPixmap(QPixmap.fromImage(image).scaled(self.ui.label.width(), self.ui.label.height()))
 
     def restart(self,event):
         self.nowQuestionIndex=0
@@ -209,7 +217,7 @@ class Stats:
             for i in range(len(con)):
                 con[1]
 
-    def faceFeature(self,test=0):#脸色提取
+    def faceFeature(self,test):#脸色提取
         if(self.cap.isOpened()):
             start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
             img = self.img #得到当前的照片
@@ -237,7 +245,9 @@ class Stats:
             cv2.normalize(p1,p1,start,255,norm_type=cv2.NORM_MINMAX)
 
             p1=p1.astype(np.uint8)
-            if test==1:
+            print(test)
+            if test == 1:
+                
                 showimg("CR", CR)
                 showimg("CB", CB)
                 showimg("CR_arr",CR_array)
@@ -468,7 +478,7 @@ class Stats:
         self.MAX_HZ = 3.33  # 200 BPM - 最大允许心率
         self.MIN_FRAMES = 100  # 在计算心率之前所需的最小帧数
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor('./qt/data/s hape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor('./qt/data/shape_predictor_68_face_landmarks.dat')
         self.roi_avg_values = []
         self.graph_values = []
         self.times = []
@@ -510,13 +520,13 @@ class Stats:
             height, width, bytesPerComponent = img.shape
             bytesPerLine = bytesPerComponent * width
             # 变换彩色空间顺序
-            cv2.cvtColor(img, cv2.COLOR_BGR2RGB, img)
+            img=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             # 转为QImage对象
 
             self.image = QImage(img.data, width, height, bytesPerLine, QImage.Format_RGB888)
             self.ui.label.setPixmap(QPixmap.fromImage(self.image).scaled(self.ui.label.width(), self.ui.label.height()))
-                
-        
+
+    
 
             
 
