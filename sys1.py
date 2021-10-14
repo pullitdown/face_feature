@@ -54,7 +54,7 @@ class Stats:
 
         self.eye_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_eye.xml")
         self.ui = QUiLoader().load('./qt/ui/untitled.ui')
-
+        print(type(self.ui))
         self.ui.toolButton.clicked.connect(self.start)
         self.ui.toolButton_4.clicked.connect(self.pulse_feature)
         self.ui.toolButton_2.clicked.connect(self.faceFeature)
@@ -67,6 +67,7 @@ class Stats:
          # 实时刷新，不然视频不动态
         self.timer_4.setInterval(100)  # 设置刷新时间
         self.timer_4.start()
+        
 
 
     def start(self,event):
@@ -82,7 +83,7 @@ class Stats:
             self.ui.label.setText(" ") 
         
 
-    def mouth_catch(self,event):
+    def mouth_catch(self,event):#测试函数,无实际作用
         n=0.5
         start=eval(self.ui.lineEdit.text())
         second=eval(self.ui.lineEdit_2.text())
@@ -93,7 +94,7 @@ class Stats:
             
             face_pos=self.face_catch.detectMultiScale(img,1.3,5)
             if(len(face_pos)>1):
-                QMessageBox.information("目前背景环境不佳,或有多个人脸在检测区域内,请重试")
+                QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
                 return
             x,y,w,h=face_pos[0]       
             img=img[y:y+h,x:x+w]#人脸区域的图片
@@ -134,15 +135,15 @@ class Stats:
             for i in range(len(con)):
                 con[1]
 
-    def faceFeature(self,event):
+    def faceFeature(self,test=0):#脸色提取
         if(self.cap.isOpened()):
-            start,second,three=35,6,3
+            start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
             img = self.img #得到当前的照片
             img=cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
             
             face_pos=self.face_catch.detectMultiScale(img,1.3,5)
-            if(len(face_pos)>1):
-                QMessageBox.information("目前背景环境不佳,或有多个人脸在检测区域内,请重试")
+            if(len(face_pos)>1 or len(face_pos)==0):
+                QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
                 return
             x,y,w,h=face_pos[0]       
             img=img[y:y+h,x:x+w]#人脸区域的图片
@@ -162,27 +163,31 @@ class Stats:
             cv2.normalize(p1,p1,start,255,norm_type=cv2.NORM_MINMAX)
 
             p1=p1.astype(np.uint8)
-            
-            showimg("CR", CR)
-            showimg("CB", CB)
-            # showimg("CR_arr",CR_array)
-            # showimg("CB_arr",CB_array)
-            # showimg("CR2",CR2)
-            # showimg("CRB",CRB)
-            #showimg("P1",p1)
+            if test==1:
+                showimg("CR", CR)
+                showimg("CB", CB)
+                showimg("CR_arr",CR_array)
+                showimg("CB_arr",CB_array)
+                showimg("CR2",CR2)
+                showimg("CRB",CRB)
+                showimg("P1",p1)
+                
             kernel=kernelbysize(int(np.floor(img.shape[0]/5)))                
             p1=cv2.erode(p1,kernel,iterations=second)#腐蚀
             #showimg("P1",p1)#35 6
             p1=cv2.dilate(p1,kernel,iterations=three)#膨胀
             #showimg("P1",p1)#35 6 
             cv2.normalize(p1,p1,0,255,norm_type=cv2.NORM_MINMAX)
-            showimg("P1",p1)#35 6 3
+
             p13=p1
             p13=255-p13
-            showimg("p13",p13)
+            
             con,hie=cv2.findContours(p13,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
             p3_copy=p13.copy()
-            print(len(con)) 
+            
+            if len(con)==1:
+                QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
+                return
             xm,ym,wm,hm= cv2.boundingRect(con[1]) 
              
             eye_pos=self.eye_catch.detectMultiScale(img)
@@ -192,7 +197,10 @@ class Stats:
             rect=cv2.rectangle(fin,(xm,ym),(xm+wm,ym+hm),(0,255,0),3)
             rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
             rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
-            showimg('rect', rect)
+            if test==1:
+                showimg("P1",p1)#35 6 3
+                showimg("p13",p13)
+                showimg('rect', rect)
             k=1
             if x0<xm:
                 k=-1    
@@ -205,7 +213,8 @@ class Stats:
             x1,y1,w1,h1=second_face
             rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
             rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
-            showimg('rect', rect)
+            if test==1:
+                showimg('rect', rect)
             mask0=np.zeros(img.shape[:2],np.uint8)
 
             mask0[y0:y0+h0,x0:x0+w0]=255
@@ -214,7 +223,8 @@ class Stats:
             fin=img.copy()
             rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
             rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
-            showimg('rect', rect)
+            if test==1:
+                showimg('face_rect', rect)
             color_df=np.zeros((3))
             for i,col in enumerate(['b','g','r']):
                 hist_mask0=cv2.calcHist([img],[i],mask0,[25],[0,256])
@@ -404,7 +414,7 @@ class Stats:
                 self.ui.toolButton_4.setText("心率采集")
                 self.timer_Active = 0
         else:
-            QMessageBox.information("摄像头未开启,请重试")
+            QMessageBox.information(self.ui,"提示","摄像头未开启,请重试")
             return
 
 
@@ -413,14 +423,16 @@ class Stats:
 
 ### 脉搏提取部分结束 ###
 
+
+### 获取实时摄像头照片以及展示 ###
     def capPicture(self):
-        if self.capIsOpen==1:
+        if self.capIsOpen==1:#如果是开启视频
             
             # get a frame
-            ret, img = self.cap.read()
+            ret, img = self.cap.read()#读取摄像头
             self.ret_val = ret
             self.img = img
-            self.last=self.img
+            self.last=self.img#上一次的图片
             height, width, bytesPerComponent = img.shape
             bytesPerLine = bytesPerComponent * width
             # 变换彩色空间顺序
