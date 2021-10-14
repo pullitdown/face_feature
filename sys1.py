@@ -384,7 +384,7 @@ class Stats:
         self.MAX_HZ = 3.33  # 200 BPM - 最大允许心率
         self.MIN_FRAMES = 100  # 在计算心率之前所需的最小帧数
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor('./qt/data/s hape_predictor_68_face_landmarks.dat')
         self.roi_avg_values = []
         self.graph_values = []
         self.times = []
