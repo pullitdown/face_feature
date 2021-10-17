@@ -402,6 +402,7 @@ class Stats:
         filtered = self.butterworth_filter(demeaned, self.MIN_HZ, self.MAX_HZ, fps, 5)
         return filtered
 
+        
     # 计算每分钟的脉搏(BPM)
     def compute_bpm(self, filtered_values, fps, buffer_size):  # 滤波后数据，帧数，缓冲区大小，上次bpm
         # 快速傅里叶变换计算FFT
