@@ -51,6 +51,16 @@ class Stats:
         # icon = QPixmap(r'C:\Users\stepf\Desktop\pizhi.jpeg').scaled(800, 600)
         # palette.setBrush(self.backgroundRole(), QBrush(icon))
         # self.setPalette(palette)
+        self.mainPage=QUiLoader().load('./qt/ui/main.ui')#load主页面
+        showimg("ddlk",cv2.imread(".\qt\img\logo.jpg"))
+        self.display_video_stream(cv2.imread(".\qt\img\logo.jpg"),self.mainPage.logo)
+
+
+
+
+
+
+
         self.ui = QUiLoader().load('./qt/ui/fin.ui')
         self.face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
         
@@ -88,17 +98,17 @@ class Stats:
         self.answerTable=[]#记录问卷选择的答案
         self.isAnswer=1
         self.singleAnswer=[]#记录单个问题的回答,可以多选
-        self.display_video_stream(cv2.imread(".\qt\img\capBackground.jpg"))
+        self.display_video_stream(cv2.imread(".\qt\img\capBackground.jpg"),self.ui.label)
 
         
 
-    def display_video_stream(self,frame):
+    def display_video_stream(self,frame,label):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         frame = cv2.flip(frame, 1)
         image = QImage(frame, frame.shape[1], frame.shape[0],
                        frame.strides[0], QImage.Format_RGB888)
         
-        self.ui.label.setPixmap(QPixmap.fromImage(image).scaled(self.ui.label.width(), self.ui.label.height()))
+        label.setPixmap(QPixmap.fromImage(image).scaled(label.width(), label.height()))
 
     def restart(self,event):
         self.nowQuestionIndex=0
@@ -538,5 +548,5 @@ class Stats:
 
 app = QApplication([])
 stats = Stats()
-stats.ui.show()
+stats.mainPage.show()
 app.exec_()
