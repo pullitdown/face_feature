@@ -14,6 +14,8 @@ from scipy import signal
 
 from functools import partial
 
+
+
 def showimg(name,img):
     cv2.imshow(name,img)
     cv2.waitKey()
@@ -59,7 +61,7 @@ class Stats:
         
         self.ui.toolButton.clicked.connect(self.start)
         self.ui.toolButton_4.clicked.connect(self.pulse_feature)
-        self.ui.toolButton_2.clicked.connect(partial(self.faceFeature,0))
+        self.ui.toolButton_2.clicked.connect(partial(self.faceFeature,1))
         self.ui.toolButton_5.clicked.connect(self.question)
         self.ui.toolButton_6.clicked.connect(self.restart)
         self.timer_Active = 0
@@ -180,7 +182,7 @@ class Stats:
             if(len(face_pos)>1):
                 QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
                 return
-            x,y,w,h=face_pos[0]       
+            x,y,w,h=face_pos[0]
             img=img[y:y+h,x:x+w]#人脸区域的图片
             Y,CR,CB=cv2.split(cv2.cvtColor(img,cv2.COLOR_BGR2YCrCb))
             cv2.normalize(CR,CR,start,255,norm_type=cv2.NORM_MINMAX)
@@ -223,14 +225,15 @@ class Stats:
         if(self.cap.isOpened()):
             start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
             img = self.img #得到当前的照片
-            img=cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
             
+            showimg("img",img)
             face_pos=self.face_catch.detectMultiScale(img,1.3,5)
             if(len(face_pos)>1 or len(face_pos)==0):
                 QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
                 return
             x,y,w,h=face_pos[0]       
             img=img[y:y+h,x:x+w]#人脸区域的图片
+            showimg("face",img)
             Y,CR,CB=cv2.split(cv2.cvtColor(img,cv2.COLOR_BGR2YCrCb))
             cv2.normalize(CR,CR,start,255,norm_type=cv2.NORM_MINMAX)
             cv2.normalize(CB,CB,start,255,norm_type=cv2.NORM_MINMAX)
@@ -252,10 +255,10 @@ class Stats:
                 
                 showimg("CR", CR)
                 showimg("CB", CB)
-                showimg("CR_arr",CR_array)
-                showimg("CB_arr",CB_array)
-                showimg("CR2",CR2)
-                showimg("CRB",CRB)
+                # showimg("CR_arr",CR_array)
+                # showimg("CB_arr",CB_array)
+                # showimg("CR2",CR2)
+                # showimg("CRB",CRB)
                 showimg("P1",p1)
                 
             kernel=kernelbysize(int(np.floor(img.shape[0]/5)))                
