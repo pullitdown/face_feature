@@ -268,25 +268,25 @@ class Stats:
 
         # self.ui.button.clicked.connect(self.handleCalc)
 
-        self.mainPage=QUiLoader().load('face_feature_sys/ui/main.ui')#load主页面
+        self.mainPage=QUiLoader().load('fea_all/ui/main.ui')#load主页面
         # palette = QPalette()
         # # showimg('kkl',cv2.imread(".\qt\img\pizhi.jpg"))
         # k=QPixmap().load(".\qt\img\pizhi.jpg")
         # palette.setBrush(self.mainPage.backgroundRole(), QBrush(k)) #背景图片
         # # palette.setBrush(QPalette.Background, QBrush(icon))
         # self.mainPage.setPalette(palette)
-        self.display_video_stream(cv2.imread(".\\face_feature_sys\img\logo.jpg"),self.mainPage.logo)
+        self.display_video_stream(cv2.imread(".\\fea_all\img\logo.jpg"),self.mainPage.logo)
         self.mainPage.setWindowTitle("中医养生建议系统demo-1.0")
 
 
 
 
 
+    
 
-
-        self.ui = QUiLoader().load('./face_feature_sys/ui/imgpage.ui')
-        self.ui_2=QUiLoader().load('./face_feature_sys/ui/quespage.ui')
-        self.ui_3=QUiLoader().load('./face_feature_sys/ui/goal.ui')
+        self.ui = QUiLoader().load('./fea_all/ui/imgpage.ui')
+        self.ui_2=QUiLoader().load('./fea_all/ui/quespage.ui')
+        self.ui_3=QUiLoader().load('./fea_all/ui/goal.ui')
         self.face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
 
         self.eye_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_eye.xml")
@@ -296,7 +296,7 @@ class Stats:
         self.ui.toolButton_6.clicked.connect(self.xuanze)
         self.ui.toolButton_4.clicked.connect(self.pulse_feature)
         self.ui.toolButton_2.clicked.connect(partial(self.faceFeature,0))
-        self.ui_2.toolButton_5.clicked.connect(self.nextPage)
+        self.ui.toolButton_5.clicked.connect(self.nextPage)
         self.ui_2.toolButton_5.clicked.connect(self.question)
         self.ui_2.toolButton_6.clicked.connect(self.restart)
         self.ui.toolButton_3.clicked.connect(self.shetou_fea)
@@ -328,7 +328,7 @@ class Stats:
         self.isAnswer=1
         self.singleAnswer=[]#记录单个问题的回答,可以多选
         self.shetou_fea_data=[]
-        self.display_video_stream(cv2.imread(".\\face_feature_sys\img\capBackground.jpg"),self.ui.label)
+        self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
 
         self.stack=QStackedWidget(self.mainPage)
         self.stack.addWidget(self.ui)
@@ -384,6 +384,36 @@ class Stats:
     def showPage(self,i):
         self.stack.setCurrentIndex(i)
 
+
+    def evaluate(self):
+        
+        
+        self.face_vector=[]
+        self.tongue_vector=[]
+        self.status=["阴虚","阳虚","气虚","平和质","气郁","湿热","痰湿","血瘀"]
+        
+        self.answer_vector=[
+            [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
+            [[1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0]],
+            [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
+            [[0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,1,0,0,0],[0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,1,0,0,0],[0,1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,1]],
+            [[0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,0,0,0,0,0,0,1],[1,0,0,0,0,1,0,0,0]],
+            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
+            [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
+        ]
+        self.sum_vector=np.zeros((9,))
+        for idx,i in enumerate([[1], [1], [2], [1], [1], [1], [2], [2], [2], [1], [1], [1], [2], [5]]):
+            for j in i:
+                self.sum_vector=self.sum_vector+np.array(self.answer_vector[idx][j])
+        print(self.sum_vector)       
+        
     def display_video_stream(self,frame,label):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         frame = cv2.flip(frame, 1)
@@ -452,14 +482,9 @@ class Stats:
             return
         if i==self.questionsLen:
             self.stack.setCurrentIndex(2)
-<<<<<<< HEAD
-            self.ui_3.face.setText(str([(k,i) for k,i in zip(['蓝','绿','蓝'],self.faceFeature)]))
-            self.ui_3.averBpm.setText(str(self.bpm_list))
-=======
             self.ui_3.face.setText(str(self.faceFeature))
             self.evaluate()
             self.ui_3.averBpm.setText(str(self.sum_vector))
->>>>>>> 399174ee0d84fd463719d5af821ca1f0f9bc0d82
             self.ui_3.answers.setText(str(self.answerTable))
             self.ui_3.shetou.setText(str(self.shetou_fea_data))
 
@@ -495,7 +520,7 @@ class Stats:
             self.timer.timeout.connect(self.capPicture)
         else:
             self.ui.toolButton.setText("视频开启")
-            self.display_video_stream(cv2.imread(".\\face_feature_sys\img\capBackground.jpg"),self.ui.label)
+            self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
             self.capIsOpen=0
             self.cap.release()
             self.ui.label.setText(" ")
@@ -779,7 +804,7 @@ class Stats:
         self.MAX_HZ = 3.33  # 200 BPM - 最大允许心率
         self.MIN_FRAMES = 100  # 在计算心率之前所需的最小帧数
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor('./face_feature_sys/data/shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor('./fea_all/data/shape_predictor_68_face_landmarks.dat')
         self.roi_avg_values = []
         self.graph_values = []
         self.times = []
