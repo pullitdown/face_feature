@@ -124,7 +124,7 @@ def cut_she(img):
             rect[2] = rect[2] - rect[0]
             rect[3] = rect[3] - rect[1]
             rect_copy = tuple(rect.copy())
-            rect = [0, 0, 0, 0]
+            #rect = [0, 0, 0, 0]
             # 物体分割
             cv2.grabCut(img, mask, rect_copy, bgdModle, fgdModle, 8, cv2.GC_INIT_WITH_RECT)
 
@@ -135,6 +135,8 @@ def cut_she(img):
             # cv2.imshow('img', img)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
+            #print(rect_copy)
+            img_show = img_show[]
             return img_show
 
 
@@ -404,8 +406,8 @@ class Stats:
         self.ui_2.textBrowser.setText("点击开始答题,本文本框会出现问题,根据实际情况在以下选择框内选择一个答案")
 
     def evaluate(self):
-        
-        
+
+
         self.face_vector=[]
         self.tongue_vector=[]
         self.status=["阴虚","阳虚","气虚","平和质","气郁","湿热","痰湿","血瘀"]
@@ -430,7 +432,7 @@ class Stats:
         for idx,i in enumerate([[1], [1], [2], [1], [1], [1], [2], [2], [2], [1], [1], [1], [2], [5]]):
             for j in i:
                 self.sum_vector=self.sum_vector+np.array(self.answer_vector[idx][j])
-        print(self.sum_vector)       
+        print(self.sum_vector)
 
 
     def question(self,event):
@@ -452,14 +454,8 @@ class Stats:
             return
         if i==self.questionsLen:
             self.stack.setCurrentIndex(2)
-<<<<<<< HEAD
             self.ui_3.face.setText(str([(k,i) for k,i in zip(['蓝','绿','蓝'],self.faceFeature)]))
             self.ui_3.averBpm.setText(str(self.bpm_list))
-=======
-            self.ui_3.face.setText(str(self.faceFeature))
-            self.evaluate()
-            self.ui_3.averBpm.setText(str(self.sum_vector))
->>>>>>> 399174ee0d84fd463719d5af821ca1f0f9bc0d82
             self.ui_3.answers.setText(str(self.answerTable))
             self.ui_3.shetou.setText(str(self.shetou_fea_data))
 
