@@ -1,12 +1,12 @@
 #coding=gbk
-from PySide2.QtWidgets import QApplication,QPushButton,QLabel,QMessageBox, QStackedWidget
+import cv2
+from PySide2.QtWidgets import QApplication,QPushButton,QLabel,QMessageBox, QStackedWidget,QFileDialog
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import QBrush,QPixmap,QPalette,QImage,QPixmap
 from PySide2.QtCore  import QTimer
-import PySide2 
-import cv2
+import PySide2
 import time
-import numpy as np 
+import numpy as np
 from PIL import Image
 from numpy.__config__ import show
 import dlib
@@ -14,14 +14,234 @@ from scipy import signal
 
 from functools import partial
 
+from pandas import cut
+from matplotlib import pyplot as plt
+import sklearn
+from sklearn.cluster import KMeans
+from skimage import filters,io,color
+
+##############################################################################################
+#shetou
+rect = [0, 0, 0, 0]  # 设定需要分割的图像范围
+leftButtonDowm = False  # 鼠标左键按下
+leftButtonUp = True  # 鼠标左键松开
+def img_resize(image):
+    height, width = image.shape[0], image.shape[1]
+    width_new = 1080
+    height_new = 1080
+    if width / height >= width_new / height_new:
+        img_new = cv2.resize(image, (width_new, int(height * width_new / width)))
+    else:
+        img_new = cv2.resize(image, (int(width * height_new / height), height_new))
+
+    return img_new
+
+def cut_face(img):
+    face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
+    face_pos=face_catch.detectMultiScale(img,1.3,5)
+    if(len(face_pos)>1 or len(face_pos)==0):
+        return img,0
+    x,y,w,h=face_pos[0]
+    return img[int(y+0.8*h):int(y+1.2*h),int(x+0.3*w):int(x+0.7*w)],1
+
+def jun_hen(img):
+    B,G,R = cv2.split(img) #获得8通道的图像
+    EB=cv2.equalizeHist(B)
+    EG=cv2.equalizeHist(G)
+    ER=cv2.equalizeHist(R)
+    equal=cv2.merge((EB,EG,ER))
+    return equal
+
+
+
+
+# 鼠标事件的回调函数
+def on_mouse(event, x, y, flag, param):
+    global rect
+    global leftButtonDowm
+    global leftButtonUp
+
+    # 鼠标左键按下
+    if event == cv2.EVENT_LBUTTONDOWN:
+        rect[0] = x
+        rect[2] = x
+        rect[1] = y
+        rect[3] = y
+        leftButtonDowm = True
+        leftButtonUp = False
+
+    # 移动鼠标事件
+    if event == cv2.EVENT_MOUSEMOVE:
+        if leftButtonDowm and not leftButtonUp:
+            rect[2] = x
+            rect[3] = y
+
+            # 鼠标左键松开
+    if event == cv2.EVENT_LBUTTONUP:
+        if leftButtonDowm and not leftButtonUp:
+            x_min = min(rect[0], rect[2])
+            y_min = min(rect[1], rect[3])
+
+            x_max = max(rect[0], rect[2])
+            y_max = max(rect[1], rect[3])
+
+            rect[0] = x_min
+            rect[1] = y_min
+            rect[2] = x_max
+            rect[3] = y_max
+            leftButtonDowm = False
+            leftButtonUp = True
+
+
+#需要选中的
+def cut_she(img):
+    global rect
+    global leftButtonDowm
+    global leftButtonUp
+    mask = np.zeros(img.shape[:2], np.uint8)
+    SIZE = (1, 65)
+    # print(img.shape[0])
+    # print(img.shape[1])
+    # 变换图像通道bgr->rgb
+    #img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+
+    #分割
+    bgdModle = np.zeros(SIZE, np.float64)
+    fgdModle = np.zeros(SIZE, np.float64)
+
+    cv2.namedWindow('img')  # 指定窗口名来创建窗口
+    cv2.setMouseCallback('img', on_mouse)  # 设置鼠标事件回调函数 来获取鼠标输入
+    cv2.imshow('img', img)  # 显示图片
+    while cv2.waitKey(2) == -1:
+    # 左键按下，画矩阵
+        if leftButtonDowm and not leftButtonUp:
+            img_copy = img.copy()
+            cv2.rectangle(img_copy, (rect[0], rect[1]), (rect[2], rect[3]), (0, 255, 0), 2)
+            cv2.imshow('img', img_copy)
+
+        # 左键松开，矩形画好
+        elif not leftButtonDowm and leftButtonUp and rect[2] - rect[0] != 0 and rect[3] - rect[1] != 0:
+            rect[2] = rect[2] - rect[0]
+            rect[3] = rect[3] - rect[1]
+            rect_copy = tuple(rect.copy())
+            rect = [0, 0, 0, 0]
+            # 物体分割
+            cv2.grabCut(img, mask, rect_copy, bgdModle, fgdModle, 8, cv2.GC_INIT_WITH_RECT)
+
+            mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+            img_show = img * mask2[:, :, np.newaxis]
+            # # 显示图片分割后结果--显示原图
+            # cv2.imshow('grabcut', img_show)
+            # cv2.imshow('img', img)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+            return img_show
+
+
+# #原来的
+# def cut_she(img):
+#     mask = np.zeros(img.shape[:2], np.uint8)
+#     SIZE = (1, 65)
+#     # print(img.shape[0])
+#     # print(img.shape[1])
+#     # 变换图像通道bgr->rgb
+#     img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+
+#     #分割
+#     bgdModle = np.zeros(SIZE, np.float64)
+#     fgdModle = np.zeros(SIZE, np.float64)
+#     rect = (int((img.shape[0])/10), int((img.shape[1])/7), int((img.shape[0])*3/5), int((img.shape[1])*2/3))
+#     for i in range(3):
+#         cv2.grabCut(img, mask, rect, bgdModle, fgdModle, 11, cv2.GC_INIT_WITH_RECT)
+#         mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+#         img *= mask2[:, :, np.newaxis]
+#         cv2.grabCut(img, mask2, rect, bgdModle, fgdModle, 1)
+#         img *= mask2[:, :, np.newaxis]
+#     return img
+
+def kmeans(img):
+    img_flat = img.reshape((img.shape[0] * img.shape[1], 3))
+    img_flat = np.float32(img_flat)
+
+    # 迭代参数
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TermCriteria_MAX_ITER, 20, 0.5)
+    flags = cv2.KMEANS_RANDOM_CENTERS
+
+    # 聚类,这里k=3;有黑色的部分未处理提取
+    compactness, labels, centers = cv2.kmeans(img_flat, 4, None, criteria, 10, flags)
+
+    # 显示结果
+    img_output = labels.reshape((img.shape[0], img.shape[1]))
+
+    return centers,img_output
+
+def find(centers):
+    centers_R = np.empty(shape = 4)
+    ind = 0
+    for i in centers:
+        centers_R[ind] = i[2]
+        ind = ind+1
+
+    shezhi_index = np.argsort(centers_R)[-2]
+    shetai_index = np.argsort(centers_R)[-1]
+    return shezhi_index,shetai_index
+
+def tai_fea(img_output,img,shetai_index):
+    mask4 = np.where(img_output==shetai_index,255,0)
+    mask4 = np.uint8(mask4)
+    img_shetai = cv2.bitwise_and(img, img, mask=mask4)
+    #转Lab和HSL颜色空间,区分舌苔
+    img_lab = cv2.cvtColor(img_shetai,cv2.COLOR_RGB2LAB)
+    img_hsl = cv2.cvtColor(img_shetai,cv2.COLOR_RGB2HLS)
+    cv2.imshow('shetai',img_shetai)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+    # plt.subplot(121), plt.imshow(img), plt.title('input')
+    # plt.subplot(122), plt.imshow(img_shetai), plt.title('fin')
+    # plt.show()
+    #舌苔亮度值
+    shetai_H,shetai_L1,shetai_S = cv2.split(img_hsl)
+    exist = (shetai_L1 != 0)
+    shetai_L_meanvalue = shetai_L1.sum()/exist.sum()
+
+    #舌苔a,b值
+    shetai_L2,shetai_A,shetai_B = cv2.split(img_lab)
+    exist = (shetai_A != 0)
+    shetai_A_meanvalue = shetai_A.sum()/exist.sum()
+
+
+    exist = (shetai_B != 0)
+    shetai_B_meanvalue = shetai_B.sum()/exist.sum()
+    return shetai_L_meanvalue,shetai_A_meanvalue,shetai_B_meanvalue
+
+def zhi_fea(img_output,img,shezhi_index):
+    mask5 = np.where(img_output==shezhi_index,255,0)
+    mask5 = np.uint8(mask5)
+    img_shezhi = cv2.bitwise_and(img, img, mask=mask5)
+    cv2.imshow('shezhi',img_shezhi)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+    # plt.subplot(121), plt.imshow(img), plt.title('input')
+    # plt.subplot(122), plt.imshow(img_shezhi), plt.title('fin')
+    # plt.show()
+    #舌质分析
+    shezhi_R, shezhi_G, shezhi_B= cv2.split(img_shezhi)
+    exist = (shezhi_R != 0)
+    shezhi_R_meanvalue = shezhi_R.sum()/exist.sum()
+    return shezhi_R_meanvalue
+
+#原图
+
+
+##############################################################################################
 def showimg(name,img):
     cv2.imshow(name,img)
     cv2.waitKey()
-    cv2.destroyAllWindows() 
+    cv2.destroyAllWindows()
 
 def showbignum(name,img):
     print(name,"\n:\n",img)
-    cv2.normalize(img,img,0,255,norm_type=cv2.NORM_MINMAX) 
+    cv2.normalize(img,img,0,255,norm_type=cv2.NORM_MINMAX)
     img = cv2.convertScaleAbs(img)
     print(name,"\n:\n",img)
 
@@ -34,7 +254,7 @@ def kernelbysize(size):
         for x in range(kernel_size):
             for y in range(kernel_size):
                 if (x-kernel_size_half)*(x-kernel_size_half)+(y-kernel_size_half)*(y-kernel_size_half)<=lenght*lenght:
-                    kernel[x,y]+=int(255/kernel_size)+2    
+                    kernel[x,y]+=int(255/kernel_size)+2
 
 class Stats:
 
@@ -47,40 +267,46 @@ class Stats:
         # self.ui = QUiLoader().load('./qt/ui/untitled.ui')
 
         # self.ui.button.clicked.connect(self.handleCalc)
+
+        self.mainPage=QUiLoader().load('face_feature_sys/ui/main.ui')#load主页面
         # palette = QPalette()
-        # icon = QPixmap(r'C:\Users\stepf\Desktop\pizhi.jpeg').scaled(800, 600)
-        # palette.setBrush(self.backgroundRole(), QBrush(icon))
-        # self.setPalette(palette)
-        self.mainPage=QUiLoader().load('./qt/ui/main.ui')#load主页面
-        
-        self.display_video_stream(cv2.imread(".\qt\img\logo.jpg"),self.mainPage.logo)
+        # # showimg('kkl',cv2.imread(".\qt\img\pizhi.jpg"))
+        # k=QPixmap().load(".\qt\img\pizhi.jpg")
+        # palette.setBrush(self.mainPage.backgroundRole(), QBrush(k)) #背景图片
+        # # palette.setBrush(QPalette.Background, QBrush(icon))
+        # self.mainPage.setPalette(palette)
+        self.display_video_stream(cv2.imread(".\\face_feature_sys\img\logo.jpg"),self.mainPage.logo)
         self.mainPage.setWindowTitle("中医养生建议系统demo-1.0")
-        
 
 
 
 
 
 
-        self.ui = QUiLoader().load('./qt/ui/imgpage.ui')
-        self.ui_2=QUiLoader().load('./qt/ui/quespage.ui')
-        self.ui_3=QUiLoader().load('./qt/ui/goal.ui')
+
+        self.ui = QUiLoader().load('./face_feature_sys/ui/imgpage.ui')
+        self.ui_2=QUiLoader().load('./face_feature_sys/ui/quespage.ui')
+        self.ui_3=QUiLoader().load('./face_feature_sys/ui/goal.ui')
         self.face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
-        
+
         self.eye_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_eye.xml")
         #self.ui = QUiLoader().load('./qt/ui/untitled.ui')
-        
+
         self.ui.toolButton.clicked.connect(self.start)
+        self.ui.toolButton_6.clicked.connect(self.xuanze)
         self.ui.toolButton_4.clicked.connect(self.pulse_feature)
         self.ui.toolButton_2.clicked.connect(partial(self.faceFeature,0))
+        self.ui_2.toolButton_5.clicked.connect(self.nextPage)
         self.ui_2.toolButton_5.clicked.connect(self.question)
         self.ui_2.toolButton_6.clicked.connect(self.restart)
+        self.ui.toolButton_3.clicked.connect(self.shetou_fea)
         self.timer_Active = 0
         self.timer = QTimer()
         self.timer.start()            # 实时刷新，不然视频不动态
         self.timer.setInterval(100)   # 设置刷新时间
         self.timer_4 = QTimer()
          # 实时刷新，不然视频不动态
+        self.bpm_list = []
         self.timer_4.setInterval(100)  # 设置刷新时间
         self.timer_4.start()
         self.questions=[["1、近期是否有特别怕冷或者怕热的情况",("A.是","B.否")],["2、有没有出现手心、脚心、胸中发热的情况",("A.有","B.无明显症状")],
@@ -101,23 +327,59 @@ class Stats:
         self.answerTable=[]#记录问卷选择的答案1
         self.isAnswer=1
         self.singleAnswer=[]#记录单个问题的回答,可以多选
-        self.display_video_stream(cv2.imread(".\qt\img\capBackground.jpg"),self.ui.label)
+        self.shetou_fea_data=[]
+        self.display_video_stream(cv2.imread(".\\face_feature_sys\img\capBackground.jpg"),self.ui.label)
 
         self.stack=QStackedWidget(self.mainPage)
         self.stack.addWidget(self.ui)
         self.stack.addWidget(self.ui_2)
         self.stack.addWidget(self.ui_3)
         self.mainPage.playout.addWidget(self.stack)
-        
+
         self.mainPage.listWidget.insertItem(0,'图像提取部分')
         self.mainPage.listWidget.insertItem(1,'近况问答部分')
         self.mainPage.listWidget.insertItem(2,'结果展示')
         self.mainPage.listWidget.currentRowChanged.connect(self.showPage)
 
 
-        
+    def shetou_fea(self):
+        #取得脸部下半
+        img=self.img
+        # img,flag = cut_face(img)
+        # if flag == 0:
+        #     QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
+        #     return
+        #处理大小
+        img = img_resize(img)
+        #均衡化
+        equal = jun_hen(img)
+        #采用中值滤波
+        median = cv2.medianBlur(equal,5)
+        #切割舌体
+        img = cut_she(median)
+        showimg("P1",img)
+        #Kmeans
+        centers,img_output = kmeans(img)
+        print(centers)
+        #showimg("P2",img_output)
+        #找点位
+        shezhi_index,shetai_index = find(centers)
+        #舌苔分析
+        shetai_L_meanvalue,shetai_A_meanvalue,shetai_B_meanvalue = tai_fea(img_output,img,shetai_index)
+        #舌质分析
+        shezhi_R_meanvalue = zhi_fea(img_output,img,shezhi_index)
+        self.shetou_fea_data.extend([shetai_L_meanvalue,shetai_A_meanvalue,shetai_B_meanvalue,shezhi_R_meanvalue])
+        self.ui.textEdit.setText(str(shetai_L_meanvalue))
 
-        
+    def xuanze(self):#输入模型权重
+        (fileName1, filetype)= QFileDialog.getOpenFileName()
+        self.img = cv2.imread(fileName1)
+        print(fileName1)
+        self.display_video_stream(self.img,self.ui.label)
+
+
+    def nextPage(self):
+        self.stack.setCurrentIndex(1)
 
     def showPage(self,i):
         self.stack.setCurrentIndex(i)
@@ -127,7 +389,7 @@ class Stats:
         frame = cv2.flip(frame, 1)
         image = QImage(frame, frame.shape[1], frame.shape[0],
                        frame.strides[0], QImage.Format_RGB888)
-        
+
         label.setPixmap(QPixmap.fromImage(image).scaled(label.width(), label.height()))
 
     def restart(self,event):
@@ -161,33 +423,34 @@ class Stats:
             return
         if i==self.questionsLen:
             self.stack.setCurrentIndex(2)
-            self.ui_3.face.setText(str(self.faceFeature))
-            self.ui_3.averBpm.setText(str(self.graph_values))
+            self.ui_3.face.setText(str([(k,i) for k,i in zip(['蓝','绿','蓝'],self.faceFeature)]))
+            self.ui_3.averBpm.setText(str(self.bpm_list))
             self.ui_3.answers.setText(str(self.answerTable))
+            self.ui_3.shetou.setText(str(self.shetou_fea_data))
 
             #QMessageBox.information(self.ui_2,"检测结果",str(self.answerTable)+"您非常健康!")
             return
-        
+
         self.ui_2.textBrowser.setText(self.questions[i][0])
         lenOfAnswer=len(self.questions[i][1])
         while self.ui_2.select_table.count():
             widget=self.ui_2.select_table.takeAt(0).widget()
-            
+
             widget.deleteLater()
         for row,j in enumerate(range(0,lenOfAnswer,3)):
             for col in range(min(3,lenOfAnswer-j)):
                 button = QPushButton(self.questions[i][1][j+col], self.ui_2)
                 button.clicked.connect(partial(self.answerTable_append,button,j+col))
-                self.ui_2.select_table.addWidget(button,row,col) 
-        
-            
+                self.ui_2.select_table.addWidget(button,row,col)
 
-    
+
+
+
     def answerTable_append(self,widget ,num):
         self.isAnswer=1
         widget.setStyleSheet("QPushButton{color:black;background-color:rgb(51,123,4)}")
         self.singleAnswer.append(num)
-        
+
 
     def start(self,event):
         if self.capIsOpen==0:
@@ -197,23 +460,23 @@ class Stats:
             self.timer.timeout.connect(self.capPicture)
         else:
             self.ui.toolButton.setText("视频开启")
-            self.display_video_stream(cv2.imread(".\qt\img\capBackground.jpg"),self.ui.label)
+            self.display_video_stream(cv2.imread(".\\face_feature_sys\img\capBackground.jpg"),self.ui.label)
             self.capIsOpen=0
             self.cap.release()
-            self.ui.label.setText(" ") 
-        
+            self.ui.label.setText(" ")
+
 
 
     def faceFeature(self,test):#脸色提取
         if(self.cap.isOpened()):
-            
+
             start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
-            img = self.img #得到当前的照片 
+            img = self.img #得到当前的照片
             face_pos=self.face_catch.detectMultiScale(img,1.3,5)
             if(len(face_pos)>1 or len(face_pos)==0):
                 QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
                 return
-            x,y,w,h=face_pos[0]       
+            x,y,w,h=face_pos[0]
             img=img[y:y+h,x:x+w]#人脸区域的图片
             Y,CR,CB=cv2.split(cv2.cvtColor(img,cv2.COLOR_BGR2YCrCb))
             cv2.normalize(CR,CR,start,255,norm_type=cv2.NORM_MINMAX)
@@ -221,19 +484,19 @@ class Stats:
             CR_array,CB_array=np.array(CR,dtype=np.float32),np.array(CB,dtype=np.float32)
             CR2=CR_array*CR_array
             CRB=CR_array/CB_array
-            cv2.normalize(CR2,CR2,start,255,norm_type=cv2.NORM_MINMAX)            
+            cv2.normalize(CR2,CR2,start,255,norm_type=cv2.NORM_MINMAX)
             cv2.normalize(CRB,CRB,start,255,norm_type=cv2.NORM_MINMAX)
             CR2,CRB=CR2.astype(np.float32),CRB.astype(np.float32)
             n=0.95*sum(CR2)/sum(CRB)
             t=(CR2-n*CRB)
             p1=CR2*t*t
-            
+
             cv2.normalize(p1,p1,start,255,norm_type=cv2.NORM_MINMAX)
 
             p1=p1.astype(np.uint8)
             print(test)
             if test == 1:
-                
+
                 showimg("CR", CR)
                 showimg("CB", CB)
                 showimg("CR_arr",CR_array)
@@ -241,25 +504,25 @@ class Stats:
                 showimg("CR2",CR2)
                 showimg("CRB",CRB)
                 showimg("P1",p1)
-                
-            kernel=kernelbysize(int(np.floor(img.shape[0]/5)))                
+
+            kernel=kernelbysize(int(np.floor(img.shape[0]/5)))
             p1=cv2.erode(p1,kernel,iterations=second)#腐蚀
             #showimg("P1",p1)#35 6
             p1=cv2.dilate(p1,kernel,iterations=three)#膨胀
-            #showimg("P1",p1)#35 6 
+            #showimg("P1",p1)#35 6
             cv2.normalize(p1,p1,0,255,norm_type=cv2.NORM_MINMAX)
 
             p13=p1
             p13=255-p13
-            
+
             con,hie=cv2.findContours(p13,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
             p3_copy=p13.copy()
-            
+
             if len(con)==1:
                 QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
                 return
-            xm,ym,wm,hm= cv2.boundingRect(con[1]) 
-             
+            xm,ym,wm,hm= cv2.boundingRect(con[1])
+
             eye_pos=self.eye_catch.detectMultiScale(img)
             x0,y0,w0,h0=eye_pos[0]
             x1,y1,w1,h1=eye_pos[1]
@@ -273,7 +536,7 @@ class Stats:
                 showimg('rect', rect)
             k=1
             if x0<xm:
-                k=-1    
+                k=-1
             first_face=(int(x0+k*0.3*w0),y0+h0,w0,int(ym-img.shape[1]/15-y0-h0))
             k=1
             if x1<xm:
@@ -291,6 +554,17 @@ class Stats:
             mask1=np.zeros(img.shape[:2],np.uint8)
             mask1[y1:y1+h1,x1:x1+w1]=255
             fin=img.copy()
+            fin=cv2.cvtColor(fin,cv2.COLOR_BGR2GRAY)
+            ret2,fin = cv2.threshold(fin,50,255,cv2.THRESH_BINARY)
+            #fin =cv2.adaptiveThreshold(fin,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+            #cv2.THRESH_BINARY,11,2)
+            mask0=cv2.bitwise_and(mask0,fin,mask0)
+            mask1=cv2.bitwise_and(mask1,fin,mask1)
+
+            # ret2,mask1 = cv2.threshold(mask1,200,255,cv2.THRESH_BINARY)
+            # ret2,mask0 = cv2.threshold(mask0,200,255,cv2.THRESH_BINARY)
+            # showimg('sb', mask0)
+            # showimg('sb', mask1)
             rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
             rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
             if test==1:
@@ -388,7 +662,7 @@ class Stats:
         filtered = self.butterworth_filter(demeaned, self.MIN_HZ, self.MAX_HZ, fps, 5)
         return filtered
 
-        
+
     # 计算每分钟的脉搏(BPM)
     def compute_bpm(self, filtered_values, fps, buffer_size):  # 滤波后数据，帧数，缓冲区大小，上次bpm
         # 快速傅里叶变换计算FFT
@@ -447,11 +721,15 @@ class Stats:
                     self.graph_values.pop(0)
                 # 计算并显示BPM
                 bpm = self.compute_bpm(filtered, fps, curr_buffer_size)
+                self.bpm_list.append(bpm)
+                if len(self.bpm_list) > self.BPM_MAX_SIZE:
+                    self.bpm_list.pop(0)
                 self.last_bpm = bpm
                 self.ui.textEdit.setText(str(bpm))
             else:
                 # 如果没有足够的数据来计算脉搏，则显示一个带有加载文本和BPM占位符的空图
-                pass
+                pct = int(round(float(curr_buffer_size) / self.MIN_FRAMES * 100.0))
+                self.ui.textEdit.setText('Computing pulse: ' + str(pct) + '%')
 
         else:
             # 没有检测到脸，所以必须清除值和时间列表，否则，当再次检测到人脸时，时间就会出现空白。
@@ -461,22 +739,25 @@ class Stats:
     def pulse_feature(self, event):
         self.BUFFER_MAX_SIZE = 500  # 存储的近期ROI平均值的数量
         self.MAX_VALUES_TO_GRAPH = 50  # 在脉冲图中显示最近的ROI平均值
+        self.BPM_MAX_SIZE = 10
         self.MIN_HZ = 0.83  # 50 BPM - 最小允许心率
         self.MAX_HZ = 3.33  # 200 BPM - 最大允许心率
         self.MIN_FRAMES = 100  # 在计算心率之前所需的最小帧数
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor('./qt/data/shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor('./face_feature_sys/data/shape_predictor_68_face_landmarks.dat')
         self.roi_avg_values = []
         self.graph_values = []
         self.times = []
+
         self.last_bpm = 0
         self.graph_height = 200
         self.graph_width = 0
         self.bpm_display_width = 0
-        
+
 
         if self.capIsOpen==1 :
             if self.timer_Active==0:
+                self.bpm_list = []
                 self.ui.toolButton_4.setText("关闭心率采集")
                 self.timer_Active = 1
                 self.timer_4.timeout.connect(self.pulse_observer)
@@ -499,7 +780,7 @@ class Stats:
 ### 获取实时摄像头照片以及展示 ###
     def capPicture(self):
         if self.capIsOpen==1:#如果是开启视频
-            
+
             # get a frame
             ret, img = self.cap.read()#读取摄像头
             self.ret_val = ret
@@ -514,11 +795,11 @@ class Stats:
             self.image = QImage(img.data, width, height, bytesPerLine, QImage.Format_RGB888)
             self.ui.label.setPixmap(QPixmap.fromImage(self.image).scaled(self.ui.label.width(), self.ui.label.height()))
 
-    
 
-            
 
-        
+
+
+
 
 
 app = QApplication([])
