@@ -13,73 +13,128 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <widget class="QTextEdit" name="bodyinf">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>40</y>
+     <width>271</width>
+     <height>111</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QTextEdit" name="adviseinf">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>210</y>
+     <width>271</width>
+     <height>251</height>
+    </rect>
+   </property>
+  </widget>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>80</y>
+     <x>300</x>
+     <y>190</y>
      <width>72</width>
      <height>15</height>
     </rect>
    </property>
    <property name="text">
-    <string>脸部特征</string>
+    <string>养生建议</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>250</y>
+     <x>300</x>
+     <y>20</y>
      <width>72</width>
      <height>15</height>
     </rect>
    </property>
    <property name="text">
-    <string>平均心率</string>
+    <string>体质结果</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>410</y>
+     <y>30</y>
      <width>72</width>
      <height>15</height>
     </rect>
    </property>
    <property name="text">
-    <string>问题回答</string>
+    <string>脸颊区域</string>
    </property>
   </widget>
-  <widget class="QTextEdit" name="face">
+  <widget class="QLabel" name="label_4">
    <property name="geometry">
     <rect>
-     <x>160</x>
-     <y>40</y>
-     <width>381</width>
-     <height>121</height>
+     <x>150</x>
+     <y>30</y>
+     <width>72</width>
+     <height>15</height>
     </rect>
    </property>
-  </widget>
-  <widget class="QTextEdit" name="averBpm">
-   <property name="geometry">
-    <rect>
-     <x>160</x>
-     <y>200</y>
-     <width>381</width>
-     <height>121</height>
-    </rect>
+   <property name="text">
+    <string>舌体区域</string>
    </property>
   </widget>
-  <widget class="QTextEdit" name="answers">
+  <widget class="QLabel" name="label_5">
    <property name="geometry">
     <rect>
-     <x>160</x>
-     <y>360</y>
-     <width>381</width>
-     <height>111</height>
+     <x>20</x>
+     <y>260</y>
+     <width>72</width>
+     <height>15</height>
     </rect>
+   </property>
+   <property name="text">
+    <string>心率图像</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="faceimg">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>70</y>
+     <width>111</width>
+     <height>161</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="tougueimg">
+   <property name="geometry">
+    <rect>
+     <x>150</x>
+     <y>70</y>
+     <width>111</width>
+     <height>161</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="rangeimg">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>280</y>
+     <width>241</width>
+     <height>171</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
    </property>
   </widget>
  </widget>

@@ -124,7 +124,7 @@ def cut_she(img):
             rect[2] = rect[2] - rect[0]
             rect[3] = rect[3] - rect[1]
             rect_copy = tuple(rect.copy())
-            rect = [0, 0, 0, 0]
+            #rect = [0, 0, 0, 0]
             # 物体分割
             cv2.grabCut(img, mask, rect_copy, bgdModle, fgdModle, 8, cv2.GC_INIT_WITH_RECT)
 
@@ -135,6 +135,7 @@ def cut_she(img):
             # cv2.imshow('img', img)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
+            img_show = img_show[rect_copy[0]:rect_copy[0]+rect_copy[2],rect_copy[1]:rect_copy[1]+rect_copy[3]]
             return img_show
 
 
@@ -282,7 +283,7 @@ class Stats:
 
 
 
-    
+
 
         self.ui = QUiLoader().load('./fea_all/ui/imgpage.ui')
         self.ui_2=QUiLoader().load('./fea_all/ui/quespage.ui')
@@ -357,7 +358,12 @@ class Stats:
         median = cv2.medianBlur(equal,5)
         #切割舌体
         img = cut_she(median)
-        showimg("P1",img)
+        
+        
+        self.tougueimg=img
+######################################################
+
+
         #Kmeans
         centers,img_output = kmeans(img)
         print(centers)
@@ -385,34 +391,7 @@ class Stats:
         self.stack.setCurrentIndex(i)
 
 
-    def evaluate(self):
-        
-        
-        self.face_vector=[]
-        self.tongue_vector=[]
-        self.status=["阴虚","阳虚","气虚","平和质","气郁","湿热","痰湿","血瘀"]
-        
-        self.answer_vector=[
-            [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
-            [[1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0]],
-            [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
-            [[0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,1,0,0,0],[0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,1,0,0,0],[0,1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,1]],
-            [[0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,0,0,0,0,0,0,1],[1,0,0,0,0,1,0,0,0]],
-            [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
-            [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
-        ]
-        self.sum_vector=np.zeros((9,))
-        for idx,i in enumerate([[1], [1], [2], [1], [1], [1], [2], [2], [2], [1], [1], [1], [2], [5]]):
-            for j in i:
-                self.sum_vector=self.sum_vector+np.array(self.answer_vector[idx][j])
-        print(self.sum_vector)       
+    
         
     def display_video_stream(self,frame,label):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -482,12 +461,13 @@ class Stats:
             return
         if i==self.questionsLen:
             self.stack.setCurrentIndex(2)
-            self.ui_3.face.setText(str(self.faceFeature))
+            
             self.evaluate()
-            self.ui_3.averBpm.setText(str(self.sum_vector))
-            self.ui_3.answers.setText(str(self.answerTable))
-            self.ui_3.shetou.setText(str(self.shetou_fea_data))
-
+            self.ui_3.adviseinf.setText(str(self.answerTable))
+            self.ui_3.bodyinf.setText(str(self.sum_vector))
+            self.display_video_stream(self.faceimg,self.ui_3.faceimg)
+            self.display_video_stream(self.tougueimg,self.ui_3.tougueimg)
+            self.display_video_stream(self.rangeimg,self.ui_3.rangeimg)
             #QMessageBox.information(self.ui_2,"检测结果",str(self.answerTable)+"您非常健康!")
             return
 
@@ -583,6 +563,18 @@ class Stats:
                 return
             xm,ym,wm,hm= cv2.boundingRect(con[1])
 
+            # mouthimg=img.copy()[xm:xm+wm,ym:ym+hm]
+            # cha=cv2.cvtColor(mouthimg,cv2.COLOR_BGR2GRAY)
+            # mask =cv2.threshold(cha,120,255,cv2.THRESH_TOZERO)
+            # mask=cv2.cvtColor(mouthimg,cv2.COLOR_GRAY2BGR)
+            # showimg("dd",mask)
+            # self.mouthstatus={}
+            # for i,col in enumerate(['b','g','r']):
+            #     hist_mask0=cv2.calcHist([mouthimg],[i],mask,[25],[0,256])
+            #     self.mouthstatus[i]+=np.argmax(hist_mask0)
+                
+
+
             eye_pos=self.eye_catch.detectMultiScale(img)
             x0,y0,w0,h0=eye_pos[0]
             x1,y1,w1,h1=eye_pos[1]
@@ -627,6 +619,10 @@ class Stats:
             # showimg('sb', mask1)
             rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
             rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+
+            rect=cv2.rectangle(img,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
+            rect=cv2.rectangle(img,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+            self.faceimg=rect
             if test==1:
                 showimg('face_rect', rect)
             color_df=np.zeros((3))
