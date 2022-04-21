@@ -273,8 +273,8 @@ class Stats:
         # 比如 self.ui.button , self.ui.textEdit
         # self.ui = QUiLoader().load('./qt/ui/untitled.ui')
 
-        # self.ui.button.clicked.connect(self.handleCalc)
-
+        # self.ui.button.clicked.connect(self.handleCalc)S
+        
         self.mainPage=QUiLoader().load('fea_all/ui/main.ui')#load主页面
         # palette = QPalette()
         # # showimg('kkl',cv2.imread(".\qt\img\pizhi.jpg"))
@@ -284,7 +284,7 @@ class Stats:
         # self.mainPage.setPalette(palette)
         self.display_video_stream(cv2.imread(".\\fea_all\img\logo.jpg"),self.mainPage.logo)
         self.mainPage.setWindowTitle("中医养生建议系统demo-1.0")
-
+        self.hasimg=0
 
 
 
@@ -387,12 +387,16 @@ class Stats:
     def xuanze(self):#输入模型权重
         (fileName1, filetype)= QFileDialog.getOpenFileName()
         self.img = cv2.imread(fileName1)
+        self.hasimg=1
         print(fileName1)
         self.display_video_stream(self.img,self.ui.label)
 
 
     def nextPage(self):
         self.stack.setCurrentIndex(1)
+        #######################################################################
+        self.evaluate()
+        #########################################################################
 
     def showPage(self,i):
         self.stack.setCurrentIndex(i)
@@ -424,8 +428,9 @@ class Stats:
 
         self.face_vector=[]
         self.tongue_vector=[]
-        self.status=["阴虚","阳虚","气虚","平和质","气郁","湿热","痰湿","血瘀"]
-        [[1], [1], [2], [1], [1], [1], [2], [2], [2], [1], [1], [1], [2], [5]]
+
+        self.status=["阴虚","阳虚","气虚","平和质","气郁","湿热","痰湿","血瘀","平和质"]
+        
         self.answer_vector=[
             [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
             [[1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
@@ -447,6 +452,16 @@ class Stats:
             for j in i:
                 self.sum_vector=self.sum_vector+np.array(self.answer_vector[idx][j])
         print(self.sum_vector)
+        
+        sta=np.argsort(self.sum_vector[:-1])[-2:]
+        if self.sum_vector[-1]>8:
+            sta[0]=8
+        self.bodyinf=[]
+        for i in sta:
+            self.bodyinf.append(self.status[i])
+
+        
+        
 
 
     def question(self,event):
@@ -472,7 +487,7 @@ class Stats:
 
             self.evaluate()
             self.ui_3.adviseinf.setText(str(self.answerTable))
-            self.ui_3.bodyinf.setText(str(self.sum_vector))
+            self.ui_3.bodyinf.setText(str(self.bodyinf))
             self.display_video_stream(self.faceimg,self.ui_3.faceimg)
             self.display_video_stream(self.tougueimg,self.ui_3.tougueimg)
             self.display_video_stream(self.rangeimg,self.ui_3.rangeimg)
@@ -508,6 +523,7 @@ class Stats:
             self.timer.timeout.connect(self.capPicture)
         else:
             self.ui.toolButton.setText("视频开启")
+            self.hasimg=0
             self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
             self.capIsOpen=0
             self.cap.release()
@@ -516,132 +532,143 @@ class Stats:
 
 
     def faceFeature(self,test):#脸色提取
-        if(self.cap.isOpened()):
+        all_color_df=np.zeros((3))
+        df_num=0
+        
+        for ll in range(10):
+            if(self.cap.isOpened() or self.hasimg):
+                start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
+                img = self.img #得到当前的照片
+                face_pos=self.face_catch.detectMultiScale(img,1.3,5)
+                if(len(face_pos)>1 or len(face_pos)==0):
+                  #  QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
+                    continue
+                x,y,w,h=face_pos[0]
+                img=img[y:y+h,x:x+w]#人脸区域的图片
+                Y,CR,CB=cv2.split(cv2.cvtColor(img,cv2.COLOR_BGR2YCrCb))
+                cv2.normalize(CR,CR,start,255,norm_type=cv2.NORM_MINMAX)
+                cv2.normalize(CB,CB,start,255,norm_type=cv2.NORM_MINMAX)
+                CR_array,CB_array=np.array(CR,dtype=np.float32),np.array(CB,dtype=np.float32)
+                CR2=CR_array*CR_array
+                CRB=CR_array/CB_array
+                cv2.normalize(CR2,CR2,start,255,norm_type=cv2.NORM_MINMAX)
+                cv2.normalize(CRB,CRB,start,255,norm_type=cv2.NORM_MINMAX)
+                CR2,CRB=CR2.astype(np.float32),CRB.astype(np.float32)
+                n=0.95*sum(CR2)/sum(CRB)
+                t=(CR2-n*CRB)
+                p1=CR2*t*t
 
-            start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
-            img = self.img #得到当前的照片
-            face_pos=self.face_catch.detectMultiScale(img,1.3,5)
-            if(len(face_pos)>1 or len(face_pos)==0):
-                QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
-                return
-            x,y,w,h=face_pos[0]
-            img=img[y:y+h,x:x+w]#人脸区域的图片
-            Y,CR,CB=cv2.split(cv2.cvtColor(img,cv2.COLOR_BGR2YCrCb))
-            cv2.normalize(CR,CR,start,255,norm_type=cv2.NORM_MINMAX)
-            cv2.normalize(CB,CB,start,255,norm_type=cv2.NORM_MINMAX)
-            CR_array,CB_array=np.array(CR,dtype=np.float32),np.array(CB,dtype=np.float32)
-            CR2=CR_array*CR_array
-            CRB=CR_array/CB_array
-            cv2.normalize(CR2,CR2,start,255,norm_type=cv2.NORM_MINMAX)
-            cv2.normalize(CRB,CRB,start,255,norm_type=cv2.NORM_MINMAX)
-            CR2,CRB=CR2.astype(np.float32),CRB.astype(np.float32)
-            n=0.95*sum(CR2)/sum(CRB)
-            t=(CR2-n*CRB)
-            p1=CR2*t*t
+                cv2.normalize(p1,p1,start,255,norm_type=cv2.NORM_MINMAX)
 
-            cv2.normalize(p1,p1,start,255,norm_type=cv2.NORM_MINMAX)
+                p1=p1.astype(np.uint8)
+                print(test)
+                if test == 1:
 
-            p1=p1.astype(np.uint8)
-            print(test)
-            if test == 1:
+                    showimg("CR", CR)
+                    showimg("CB", CB)
+                    showimg("CR_arr",CR_array)
+                    showimg("CB_arr",CB_array)
+                    showimg("CR2",CR2)
+                    showimg("CRB",CRB)
+                    showimg("P1",p1)
 
-                showimg("CR", CR)
-                showimg("CB", CB)
-                showimg("CR_arr",CR_array)
-                showimg("CB_arr",CB_array)
-                showimg("CR2",CR2)
-                showimg("CRB",CRB)
-                showimg("P1",p1)
+                kernel=kernelbysize(int(np.floor(img.shape[0]/5)))
+                p1=cv2.erode(p1,kernel,iterations=second)#腐蚀
+                #showimg("P1",p1)#35 6
+                p1=cv2.dilate(p1,kernel,iterations=three)#膨胀
+                #showimg("P1",p1)#35 6
+                cv2.normalize(p1,p1,0,255,norm_type=cv2.NORM_MINMAX)
 
-            kernel=kernelbysize(int(np.floor(img.shape[0]/5)))
-            p1=cv2.erode(p1,kernel,iterations=second)#腐蚀
-            #showimg("P1",p1)#35 6
-            p1=cv2.dilate(p1,kernel,iterations=three)#膨胀
-            #showimg("P1",p1)#35 6
-            cv2.normalize(p1,p1,0,255,norm_type=cv2.NORM_MINMAX)
+                p13=p1
+                p13=255-p13
 
-            p13=p1
-            p13=255-p13
+                con,hie=cv2.findContours(p13,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+                p3_copy=p13.copy()
 
-            con,hie=cv2.findContours(p13,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
-            p3_copy=p13.copy()
+                if len(con)==1:
+                   # QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
+                    continue
+                xm,ym,wm,hm= cv2.boundingRect(con[1])
 
-            if len(con)==1:
-                QMessageBox.information(self.ui,"提示","目前背景环境不佳,或有多个人脸在检测区域内,请重试")
-                return
-            xm,ym,wm,hm= cv2.boundingRect(con[1])
-
-            # mouthimg=img.copy()[xm:xm+wm,ym:ym+hm]
-            # cha=cv2.cvtColor(mouthimg,cv2.COLOR_BGR2GRAY)
-            # mask =cv2.threshold(cha,120,255,cv2.THRESH_TOZERO)
-            # mask=cv2.cvtColor(mouthimg,cv2.COLOR_GRAY2BGR)
-            # showimg("dd",mask)
-            # self.mouthstatus={}
-            # for i,col in enumerate(['b','g','r']):
-            #     hist_mask0=cv2.calcHist([mouthimg],[i],mask,[25],[0,256])
-            #     self.mouthstatus[i]+=np.argmax(hist_mask0)
+                # mouthimg=img.copy()[xm:xm+wm,ym:ym+hm]
+                # cha=cv2.cvtColor(mouthimg,cv2.COLOR_BGR2GRAY)
+                # mask =cv2.threshold(cha,120,255,cv2.THRESH_TOZERO)
+                # mask=cv2.cvtColor(mouthimg,cv2.COLOR_GRAY2BGR)
+                # showimg("dd",mask)
+                # self.mouthstatus={}
+                # for i,col in enumerate(['b','g','r']):
+                #     hist_mask0=cv2.calcHist([mouthimg],[i],mask,[25],[0,256])
+                #     self.mouthstatus[i]+=np.argmax(hist_mask0)
 
 
 
-            eye_pos=self.eye_catch.detectMultiScale(img)
-            x0,y0,w0,h0=eye_pos[0]
-            x1,y1,w1,h1=eye_pos[1]
-            fin=img.copy()
-            rect=cv2.rectangle(fin,(xm,ym),(xm+wm,ym+hm),(0,255,0),3)
-            rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
-            rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
-            if test==1:
-                showimg("P1",p1)#35 6 3
-                showimg("p13",p13)
-                showimg('rect', rect)
-            k=1
-            if x0<xm:
-                k=-1
-            first_face=(int(x0+k*0.3*w0),y0+h0,w0,int(ym-img.shape[1]/15-y0-h0))
-            k=1
-            if x1<xm:
-                k=-1
-            second_face=(int(x1+k*0.3*w1),y1+h1,w1,int(ym-img.shape[1]/15-y1-h1))
-            x0,y0,w0,h0=first_face
-            x1,y1,w1,h1=second_face
-            rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
-            rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
-            if test==1:
-                showimg('rect', rect)
-            mask0=np.zeros(img.shape[:2],np.uint8)
+                eye_pos=self.eye_catch.detectMultiScale(img)
+                if len(eye_pos)!=2:
+                    continue
+                x0,y0,w0,h0=eye_pos[0]
+                x1,y1,w1,h1=eye_pos[1]
+                fin=img.copy()
+                rect=cv2.rectangle(fin,(xm,ym),(xm+wm,ym+hm),(0,255,0),3)
+                rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
+                rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+                if test==1:
+                    showimg("P1",p1)#35 6 3
+                    showimg("p13",p13)
+                    showimg('rect', rect)
+                k=1
+                if x0<xm:
+                    k=-1
+                first_face=(int(x0+k*0.3*w0),y0+h0,w0,int(ym-img.shape[1]/15-y0-h0))
+                k=1
+                if x1<xm:
+                    k=-1
+                second_face=(int(x1+k*0.3*w1),y1+h1,w1,int(ym-img.shape[1]/15-y1-h1))
+                x0,y0,w0,h0=first_face
+                x1,y1,w1,h1=second_face
+                rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
+                rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+                if test==1:
+                    showimg('rect', rect)
+                mask0=np.zeros(img.shape[:2],np.uint8)
 
-            mask0[y0:y0+h0,x0:x0+w0]=255
-            mask1=np.zeros(img.shape[:2],np.uint8)
-            mask1[y1:y1+h1,x1:x1+w1]=255
-            fin=img.copy()
-            fin=cv2.cvtColor(fin,cv2.COLOR_BGR2GRAY)
-            ret2,fin = cv2.threshold(fin,50,255,cv2.THRESH_BINARY)
-            #fin =cv2.adaptiveThreshold(fin,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            #cv2.THRESH_BINARY,11,2)
-            mask0=cv2.bitwise_and(mask0,fin,mask0)
-            mask1=cv2.bitwise_and(mask1,fin,mask1)
+                mask0[y0:y0+h0,x0:x0+w0]=255
+                mask1=np.zeros(img.shape[:2],np.uint8)
+                mask1[y1:y1+h1,x1:x1+w1]=255
+                fin=img.copy()
+                fin=cv2.cvtColor(fin,cv2.COLOR_BGR2GRAY)
+                ret2,fin = cv2.threshold(fin,50,255,cv2.THRESH_BINARY)
+                #fin =cv2.adaptiveThreshold(fin,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                #cv2.THRESH_BINARY,11,2)
+                mask0=cv2.bitwise_and(mask0,fin,mask0)
+                mask1=cv2.bitwise_and(mask1,fin,mask1)
 
-            # ret2,mask1 = cv2.threshold(mask1,200,255,cv2.THRESH_BINARY)
-            # ret2,mask0 = cv2.threshold(mask0,200,255,cv2.THRESH_BINARY)
-            # showimg('sb', mask0)
-            # showimg('sb', mask1)
-            rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
-            rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+                # ret2,mask1 = cv2.threshold(mask1,200,255,cv2.THRESH_BINARY)
+                # ret2,mask0 = cv2.threshold(mask0,200,255,cv2.THRESH_BINARY)
+                # showimg('sb', mask0)
+                # showimg('sb', mask1)
+                rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
+                rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
 
-            rect=cv2.rectangle(img,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
-            rect=cv2.rectangle(img,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
-            self.faceimg=rect
-            if test==1:
-                showimg('face_rect', rect)
-            color_df=np.zeros((3))
-            for i,col in enumerate(['b','g','r']):
-                hist_mask0=cv2.calcHist([img],[i],mask0,[25],[0,256])
-                color_df[i]+=np.argmax(hist_mask0)
-                hist_mask1=cv2.calcHist([img],[i],mask1,[25],[0,256])
-                color_df[i]+=np.argmax(hist_mask1)
-            color_df=color_df/2
-            self.faceFeature=color_df#2
-            self.ui.textEdit.setText(str([(k,i) for k,i in zip(['蓝','绿','蓝'],color_df)]))
+                
+                if test==1:
+                    showimg('face_rect', rect)
+                color_df=np.zeros((3))
+                for i,col in enumerate(['b','g','r']):
+                    hist_mask0=cv2.calcHist([img],[i],mask0,[25],[0,256])
+                    color_df[i]+=np.argmax(hist_mask0)
+                    hist_mask1=cv2.calcHist([img],[i],mask1,[25],[0,256])
+                    color_df[i]+=np.argmax(hist_mask1)
+                color_df=color_df/2
+                
+                if  color_df[0]>0 and color_df[1]>0 and color_df[2]>0:
+                    all_color_df+=color_df
+                    rect=cv2.rectangle(img,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
+                    rect=cv2.rectangle(img,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+                    self.faceimg=rect
+                    df_num+=1
+        self.faceFeature=all_color_df/df_num#2
+        self.ui.textEdit.setText(str([(k,i) for k,i in zip(['蓝','绿','红'],self.faceFeature)]))
+
 
 ### 脉搏提取部分开始 ###
 
