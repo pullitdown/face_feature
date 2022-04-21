@@ -537,12 +537,11 @@ class Stats:
 
 
 
-    def faceFeature(self,test):#脸色提取
+    def faceFeature(self,test=1):#脸色提取
         all_color_df=np.zeros((3))
         df_num=0
-        
-        for ll in range(10):
-            if(self.cap.isOpened() or self.hasimg):
+        if( self.cap.isOpened() ):
+            for ll in range(10):
                 start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
                 img = self.img #得到当前的照片
                 face_pos=self.face_catch.detectMultiScale(img,1.3,5)
@@ -648,6 +647,9 @@ class Stats:
                 mask0=cv2.bitwise_and(mask0,fin,mask0)
                 mask1=cv2.bitwise_and(mask1,fin,mask1)
 
+                showmask=np.zeros(img.shape[:2],np.uint8)
+                showmask=cv2.bitwise_or(mask1,mask0,showmask)
+                self.mm=showmask
                 # ret2,mask1 = cv2.threshold(mask1,200,255,cv2.THRESH_BINARY)
                 # ret2,mask0 = cv2.threshold(mask0,200,255,cv2.THRESH_BINARY)
                 # showimg('sb', mask0)
@@ -670,12 +672,16 @@ class Stats:
                     
                 if  color_df[0]>0 and color_df[1]>0 and color_df[2]>0:
                     all_color_df+=color_df
+
                     rect=cv2.rectangle(img,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
                     rect=cv2.rectangle(img,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
                     self.faceimg=rect
+                    self.showmask=self.mm
                     df_num+=1
-        self.face_vector=all_color_df/df_num#2
-        self.ui.textEdit.setText(str([(k,i) for k,i in zip(['蓝','绿','红'],self.face_vector)]))
+            if df_num==0:
+                df_num+=1
+            self.face_vector=all_color_df/df_num#2
+            self.ui.textEdit.setText(str([(k,i) for k,i in zip(['蓝','绿','红'],self.face_vector)]))
 
 
 ### 脉搏提取部分开始 ###
