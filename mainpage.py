@@ -271,8 +271,8 @@ class Stats:
         # 比如 self.ui.button , self.ui.textEdit
         # self.ui = QUiLoader().load('./qt/ui/untitled.ui')
 
-        # self.ui.button.clicked.connect(self.handleCalc)
-
+        # self.ui.button.clicked.connect(self.handleCalc)S
+        
         self.mainPage=QUiLoader().load('fea_all/ui/main.ui')#load主页面
         # palette = QPalette()
         # # showimg('kkl',cv2.imread(".\qt\img\pizhi.jpg"))
@@ -282,7 +282,7 @@ class Stats:
         # self.mainPage.setPalette(palette)
         self.display_video_stream(cv2.imread(".\\fea_all\img\logo.jpg"),self.mainPage.logo)
         self.mainPage.setWindowTitle("中医养生建议系统demo-1.0")
-
+        self.hasimg=0
 
 
 
@@ -385,6 +385,7 @@ class Stats:
     def xuanze(self):#输入模型权重
         (fileName1, filetype)= QFileDialog.getOpenFileName()
         self.img = cv2.imread(fileName1)
+        self.hasimg=1
         print(fileName1)
         self.display_video_stream(self.img,self.ui.label)
 
@@ -506,6 +507,7 @@ class Stats:
             self.timer.timeout.connect(self.capPicture)
         else:
             self.ui.toolButton.setText("视频开启")
+            self.hasimg=0
             self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
             self.capIsOpen=0
             self.cap.release()
@@ -514,7 +516,7 @@ class Stats:
 
 
     def faceFeature(self,test):#脸色提取
-        if(self.cap.isOpened()):
+        if(self.cap.isOpened() or self.hasimg):
 
             start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
             img = self.img #得到当前的照片
