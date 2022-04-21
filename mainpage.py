@@ -274,8 +274,8 @@ class Stats:
         # self.ui = QUiLoader().load('./qt/ui/untitled.ui')
 
         # self.ui.button.clicked.connect(self.handleCalc)S
-        
-        self.mainPage=QUiLoader().load('fea_all/ui/main.ui')#load主页面
+
+        self.mainPage=QUiLoader().load('./fea_all/ui/main.ui')#load主页面
         # palette = QPalette()
         # # showimg('kkl',cv2.imread(".\qt\img\pizhi.jpg"))
         # k=QPixmap().load(".\qt\img\pizhi.jpg")
@@ -430,7 +430,7 @@ class Stats:
         self.tongue_vector=[]
 
         self.status=["阴虚","阳虚","气虚","平和质","气郁","湿热","痰湿","血瘀","平和质"]
-        
+
         self.answer_vector=[
             [[0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
             [[1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1]],
@@ -452,7 +452,7 @@ class Stats:
             for j in i:
                 self.sum_vector=self.sum_vector+np.array(self.answer_vector[idx][j])
         print(self.sum_vector)
-        
+
         sta=np.argsort(self.sum_vector[:-1])[-2:]
         if self.sum_vector[-1]>8:
             sta[0]=8
@@ -460,8 +460,8 @@ class Stats:
         for i in sta:
             self.bodyinf.append(self.status[i])
 
-        
-        
+
+
 
 
     def question(self,event):
@@ -534,7 +534,7 @@ class Stats:
     def faceFeature(self,test):#脸色提取
         all_color_df=np.zeros((3))
         df_num=0
-        
+
         for ll in range(10):
             if(self.cap.isOpened() or self.hasimg):
                 start,second,three=35,6,3#设定参数,分别是腐蚀/膨胀操作的kernel大小,腐蚀次数,膨胀次数
@@ -649,7 +649,7 @@ class Stats:
                 rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
                 rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
 
-                
+
                 if test==1:
                     showimg('face_rect', rect)
                 color_df=np.zeros((3))
@@ -659,7 +659,7 @@ class Stats:
                     hist_mask1=cv2.calcHist([img],[i],mask1,[25],[0,256])
                     color_df[i]+=np.argmax(hist_mask1)
                 color_df=color_df/2
-                
+
                 if  color_df[0]>0 and color_df[1]>0 and color_df[2]>0:
                     all_color_df+=color_df
                     rect=cv2.rectangle(img,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
