@@ -136,7 +136,10 @@ def cut_she(img):
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
             #print(rect_copy)
-            img_show = img_show[]
+            img_show = img_show[rect_copy[1]:rect_copy[1]+rect_copy[3],rect_copy[0]:rect_copy[0]+rect_copy[2]]
+            #x, y, w, h = rect_copy
+            #img_show = img_show[y:y+h,x:x+w]
+
             return img_show
 
 
@@ -270,14 +273,14 @@ class Stats:
 
         # self.ui.button.clicked.connect(self.handleCalc)
 
-        self.mainPage=QUiLoader().load('face_feature_sys/ui/main.ui')#load主页面
+        self.mainPage=QUiLoader().load('fea_all/ui/main.ui')#load主页面
         # palette = QPalette()
         # # showimg('kkl',cv2.imread(".\qt\img\pizhi.jpg"))
         # k=QPixmap().load(".\qt\img\pizhi.jpg")
         # palette.setBrush(self.mainPage.backgroundRole(), QBrush(k)) #背景图片
         # # palette.setBrush(QPalette.Background, QBrush(icon))
         # self.mainPage.setPalette(palette)
-        self.display_video_stream(cv2.imread(".\\face_feature_sys\img\logo.jpg"),self.mainPage.logo)
+        self.display_video_stream(cv2.imread(".\\fea_all\img\logo.jpg"),self.mainPage.logo)
         self.mainPage.setWindowTitle("中医养生建议系统demo-1.0")
 
 
@@ -286,9 +289,9 @@ class Stats:
 
 
 
-        self.ui = QUiLoader().load('./face_feature_sys/ui/imgpage.ui')
-        self.ui_2=QUiLoader().load('./face_feature_sys/ui/quespage.ui')
-        self.ui_3=QUiLoader().load('./face_feature_sys/ui/goal.ui')
+        self.ui = QUiLoader().load('./fea_all/ui/imgpage.ui')
+        self.ui_2=QUiLoader().load('./fea_all/ui/quespage.ui')
+        self.ui_3=QUiLoader().load('./fea_all/ui/goal.ui')
         self.face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
 
         self.eye_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_eye.xml")
@@ -298,7 +301,7 @@ class Stats:
         self.ui.toolButton_6.clicked.connect(self.xuanze)
         self.ui.toolButton_4.clicked.connect(self.pulse_feature)
         self.ui.toolButton_2.clicked.connect(partial(self.faceFeature,0))
-        self.ui_2.toolButton_5.clicked.connect(self.nextPage)
+        self.ui.toolButton_5.clicked.connect(self.nextPage)
         self.ui_2.toolButton_5.clicked.connect(self.question)
         self.ui_2.toolButton_6.clicked.connect(self.restart)
         self.ui.toolButton_3.clicked.connect(self.shetou_fea)
@@ -330,7 +333,7 @@ class Stats:
         self.isAnswer=1
         self.singleAnswer=[]#记录单个问题的回答,可以多选
         self.shetou_fea_data=[]
-        self.display_video_stream(cv2.imread(".\\face_feature_sys\img\capBackground.jpg"),self.ui.label)
+        self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
 
         self.stack=QStackedWidget(self.mainPage)
         self.stack.addWidget(self.ui)
@@ -359,7 +362,13 @@ class Stats:
         median = cv2.medianBlur(equal,5)
         #切割舌体
         img = cut_she(median)
-        showimg("P1",img)
+
+
+        self.tougueimg=img
+        showimg("all",self.tougueimg)
+######################################################
+
+
         #Kmeans
         centers,img_output = kmeans(img)
         print(centers)
@@ -385,6 +394,9 @@ class Stats:
 
     def showPage(self,i):
         self.stack.setCurrentIndex(i)
+
+
+
 
     def display_video_stream(self,frame,label):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -454,11 +466,14 @@ class Stats:
             return
         if i==self.questionsLen:
             self.stack.setCurrentIndex(2)
-            self.ui_3.face.setText(str([(k,i) for k,i in zip(['蓝','绿','蓝'],self.faceFeature)]))
-            self.ui_3.averBpm.setText(str(self.bpm_list))
-            self.ui_3.answers.setText(str(self.answerTable))
-            self.ui_3.shetou.setText(str(self.shetou_fea_data))
 
+
+            self.evaluate()
+            self.ui_3.adviseinf.setText(str(self.answerTable))
+            self.ui_3.bodyinf.setText(str(self.sum_vector))
+            self.display_video_stream(self.faceimg,self.ui_3.faceimg)
+            self.display_video_stream(self.tougueimg,self.ui_3.tougueimg)
+            self.display_video_stream(self.rangeimg,self.ui_3.rangeimg)
             #QMessageBox.information(self.ui_2,"检测结果",str(self.answerTable)+"您非常健康!")
             return
 
@@ -491,7 +506,7 @@ class Stats:
             self.timer.timeout.connect(self.capPicture)
         else:
             self.ui.toolButton.setText("视频开启")
-            self.display_video_stream(cv2.imread(".\\face_feature_sys\img\capBackground.jpg"),self.ui.label)
+            self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
             self.capIsOpen=0
             self.cap.release()
             self.ui.label.setText(" ")
@@ -554,6 +569,18 @@ class Stats:
                 return
             xm,ym,wm,hm= cv2.boundingRect(con[1])
 
+            # mouthimg=img.copy()[xm:xm+wm,ym:ym+hm]
+            # cha=cv2.cvtColor(mouthimg,cv2.COLOR_BGR2GRAY)
+            # mask =cv2.threshold(cha,120,255,cv2.THRESH_TOZERO)
+            # mask=cv2.cvtColor(mouthimg,cv2.COLOR_GRAY2BGR)
+            # showimg("dd",mask)
+            # self.mouthstatus={}
+            # for i,col in enumerate(['b','g','r']):
+            #     hist_mask0=cv2.calcHist([mouthimg],[i],mask,[25],[0,256])
+            #     self.mouthstatus[i]+=np.argmax(hist_mask0)
+
+
+
             eye_pos=self.eye_catch.detectMultiScale(img)
             x0,y0,w0,h0=eye_pos[0]
             x1,y1,w1,h1=eye_pos[1]
@@ -598,6 +625,10 @@ class Stats:
             # showimg('sb', mask1)
             rect=cv2.rectangle(fin,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
             rect=cv2.rectangle(fin,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+
+            rect=cv2.rectangle(img,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
+            rect=cv2.rectangle(img,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
+            self.faceimg=rect
             if test==1:
                 showimg('face_rect', rect)
             color_df=np.zeros((3))
@@ -775,7 +806,7 @@ class Stats:
         self.MAX_HZ = 3.33  # 200 BPM - 最大允许心率
         self.MIN_FRAMES = 100  # 在计算心率之前所需的最小帧数
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor('./face_feature_sys/data/shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor('./fea_all/data/shape_predictor_68_face_landmarks.dat')
         self.roi_avg_values = []
         self.graph_values = []
         self.times = []
