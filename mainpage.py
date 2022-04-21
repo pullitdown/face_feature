@@ -424,9 +424,15 @@ class Stats:
         self.ui_2.textBrowser.setText("点击开始答题,本文本框会出现问题,根据实际情况在以下选择框内选择一个答案")
 
     def evaluate(self):
+        self.sum_vector=np.zeros((9,))
+        if self.face_vector[2]-self.face_vector[0]>6:
+            self.sum_vector[0]+=1
+            if self.face_vector.sum()>40:
+                self.sum_vector[7]+=1
+        if self.face_vector.sum()<20:
+            self.sum_vector[7]+=1
 
 
-        self.face_vector=[]
         self.tongue_vector=[]
 
         self.status=["阴虚","阳虚","气虚","平和质","气郁","湿热","痰湿","血瘀","平和质"]
@@ -447,8 +453,8 @@ class Stats:
             [[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,1]],
             [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0]],
         ]
-        self.sum_vector=np.zeros((9,))
-        for idx,i in enumerate([[1], [1], [2], [1], [1], [1], [2], [2], [2], [1], [1], [1], [2], [5]]):
+
+        for idx,i in enumerate(self.answerTable):
             for j in i:
                 self.sum_vector=self.sum_vector+np.array(self.answer_vector[idx][j])
         print(self.sum_vector)
@@ -531,7 +537,7 @@ class Stats:
 
 
 
-    def faceFeature(self,test):#脸色提取
+    def faceFeature(self,test=1):#脸色提取
         all_color_df=np.zeros((3))
         df_num=0
 
@@ -642,6 +648,9 @@ class Stats:
                 mask0=cv2.bitwise_and(mask0,fin,mask0)
                 mask1=cv2.bitwise_and(mask1,fin,mask1)
 
+                showmask=np.zeros(img.shape[:2],np.uint8)
+                showmask=cv2.bitwise_or(mask1,mask0,showmask)
+                self.mm=showmask
                 # ret2,mask1 = cv2.threshold(mask1,200,255,cv2.THRESH_BINARY)
                 # ret2,mask0 = cv2.threshold(mask0,200,255,cv2.THRESH_BINARY)
                 # showimg('sb', mask0)
@@ -653,21 +662,25 @@ class Stats:
                 if test==1:
                     showimg('face_rect', rect)
                 color_df=np.zeros((3))
+                light=0
                 for i,col in enumerate(['b','g','r']):
                     hist_mask0=cv2.calcHist([img],[i],mask0,[25],[0,256])
                     color_df[i]+=np.argmax(hist_mask0)
                     hist_mask1=cv2.calcHist([img],[i],mask1,[25],[0,256])
                     color_df[i]+=np.argmax(hist_mask1)
                 color_df=color_df/2
-
                 if  color_df[0]>0 and color_df[1]>0 and color_df[2]>0:
                     all_color_df+=color_df
+
                     rect=cv2.rectangle(img,(x0,y0),(x0+w0,y0+h0),(0,255,0),3)
                     rect=cv2.rectangle(img,(x1,y1),(x1+w1,y1+h1),(0,255,0),3)
                     self.faceimg=rect
+                    self.showmask=self.mm
                     df_num+=1
-        self.faceFeature=all_color_df/df_num#2
-        self.ui.textEdit.setText(str([(k,i) for k,i in zip(['蓝','绿','红'],self.faceFeature)]))
+            if df_num==0:
+                df_num+=1
+            self.face_vector=all_color_df/df_num#2
+            self.ui.textEdit.setText(str([(k,i) for k,i in zip(['蓝','绿','红'],self.face_vector)]))
 
 
 ### 脉搏提取部分开始 ###
