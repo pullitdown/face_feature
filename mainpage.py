@@ -237,6 +237,8 @@ def zhi_fea(img_output,img,shezhi_index):
 
 #ԭͼ
 
+def analyze():
+    return 0
 
 ##############################################################################################
 def showimg(name,img):
