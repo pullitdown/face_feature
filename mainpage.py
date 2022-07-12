@@ -306,7 +306,7 @@ def kernelbysize(size):
                     kernel[x,y]+=int(255/kernel_size)+2
 
 class Stats:
-
+    root_path="./"
     def __init__(self):
         # 从文件中加载UI定义
         self.capIsOpen=0
@@ -317,14 +317,14 @@ class Stats:
 
         # self.ui.button.clicked.connect(self.handleCalc)S
 
-        self.mainPage=QUiLoader().load('./fea_all/ui/main.ui')#load主页面
+        self.mainPage=QUiLoader().load(self.root_path+'ui/main.ui')#load主页面
         # palette = QPalette()
         # # showimg('kkl',cv2.imread(".\qt\img\pizhi.jpg"))
         # k=QPixmap().load(".\qt\img\pizhi.jpg")
         # palette.setBrush(self.mainPage.backgroundRole(), QBrush(k)) #背景图片
         # # palette.setBrush(QPalette.Background, QBrush(icon))
         # self.mainPage.setPalette(palette)
-        self.display_video_stream(cv2.imread(".\\fea_all\img\logo.jpg"),self.mainPage.logo)
+        self.display_video_stream(cv2.imread(self.root_path+'img\logo.jpg'),self.mainPage.logo)
         self.mainPage.setWindowTitle("中医养生建议系统demo-1.0")
         self.hasimg=0
 
@@ -333,9 +333,9 @@ class Stats:
 
 
 
-        self.ui = QUiLoader().load('./fea_all/ui/imgpage.ui')
-        self.ui_2=QUiLoader().load('./fea_all/ui/quespage.ui')
-        self.ui_3=QUiLoader().load('./fea_all/ui/goal.ui')
+        self.ui = QUiLoader().load(self.root_path+'ui/imgpage.ui')
+        self.ui_2=QUiLoader().load(self.root_path+'ui/quespage.ui')
+        self.ui_3=QUiLoader().load(self.root_path+'ui/goal.ui')
         self.face_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_frontalface_default.xml")
 
         self.eye_catch=cv2.CascadeClassifier(cv2.data.haarcascades+"haarcascade_eye.xml")
@@ -392,7 +392,7 @@ class Stats:
         self.isAnswer=1
         self.singleAnswer=[]#记录单个问题的回答,可以多选
         self.shetou_fea_data=[]
-        self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
+        self.display_video_stream(cv2.imread(self.root_path+'img\capBackground.jpg'),self.ui.label)
 
         self.stack=QStackedWidget(self.mainPage)
         self.stack.addWidget(self.ui)
@@ -610,7 +610,7 @@ class Stats:
         else:
             self.ui.toolButton.setText("视频开启")
             self.hasimg=0
-            self.display_video_stream(cv2.imread(".\\fea_all\img\capBackground.jpg"),self.ui.label)
+            self.display_video_stream(cv2.imread(self.root_path+'img\capBackground.jpg'),self.ui.label)
             self.capIsOpen=0
             self.cap.release()
             self.ui.label.setText(" ")
@@ -936,7 +936,7 @@ class Stats:
         self.MAX_HZ = 3.33  # 200 BPM - 最大允许心率
         self.MIN_FRAMES = 100  # 在计算心率之前所需的最小帧数
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor('./fea_all/data/shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor(self.root_path+'data/shape_predictor_68_face_landmarks.dat')
         self.roi_avg_values = []
         self.graph_values = []
         self.times = []
